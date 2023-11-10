@@ -12,15 +12,13 @@ function App() {
 
   const [walletAddress, setWalletAddress] = useState("");
   const [signer, setSigner] = useState();
-  const [numberContract, setNumberContract] = useState(0);
-  const [currentContract, setCurrentContract] = useState();
   const [transactionData, setTransactionData] = useState("");
 
   const [from, setFrom] = useState("");
   const [to, setReceiver] = useState("");
-  const [amount, setAmount] = useState();
+  const [amount, setAmount] = useState(0);
   const [URI, setURI] = useState("");
-  const [NFTId, setNFTId] = useState();
+  const [NFTId, setNFTId] = useState(1);
   const [targetAddress, setTargetAddress] = useState("");
 
   const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -28,8 +26,9 @@ function App() {
 
   useEffect(() => {
     getCurrentWalletConnected();
-    addWalletListener();
-  }, [walletAddress]);
+    myListener();
+    console.log("COUNTER");
+  }, []);
 
   const connectWallet = async () => {
     console.log("Connecting wallet...");
@@ -38,7 +37,6 @@ function App() {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         setSigner(provider.getSigner());
-        setCurrentContract(tokenContract(provider));
         setWalletAddress(accounts[0]);
       } catch (err) {
         console.error(err.message);
@@ -54,8 +52,6 @@ function App() {
         const accounts = await provider.send("eth_accounts", []);
         if (accounts.length > 0) {
           setSigner(provider.getSigner());
-          setCurrentContract(tokenContract(provider));
-          console.log("Current name contract: Token Contract")
           setWalletAddress(accounts[0]);
         } else {
           console.log("Connect to MetaMask using the Connect Wallet button");
@@ -67,47 +63,12 @@ function App() {
       console.log("Please install MetaMask");
     }
   };
-  const addWalletListener = async () => {
-    if (typeof window != "undefined" && typeof window.ethereum != "undefined") {
-      window.ethereum.on("accountsChanged", (accounts) => {
-        setWalletAddress(accounts[0]);
-      });
-    } else {
-      /* MetaMask is not installed */
-      setWalletAddress("");
-      console.log("Please install MetaMask");
-    }
-  };
-  async function changeContract() {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const newNumberContract = numberContract + 1;
-      let newContract = null;
-      let displayName = "not found";
-      if (newNumberContract % 3 === 1) {
-        newContract = nftContract(provider);
-        displayName = "NFT Contract";
-      } else if (newNumberContract % 3 === 2) {
-        newContract = mintNFTByTokenContract(provider);
-        displayName = "MintNFTByToken Contract";
-      } else if (newNumberContract % 3 === 0) {
-        newContract = tokenContract(provider);
-        displayName = "Token Contract";
-      }
-
-      console.log("Current name contract: " + displayName);
-
-      setNumberContract(newNumberContract);
-      setCurrentContract(newContract);
-
-    } catch (error) {
-      console.log("Error: ", error);
-    }
-  }
+  
   async function myGetBalanceToken() {
     try {
-      const fGetBalance = currentContract.connect(signer);
-      console.log(currentContract);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = tokenContract(provider);
+      const fGetBalance = newContract.connect(signer);
       const signerAddress = await signer.getAddress();
       console.log("Get balance token of " + signerAddress + " ..............");
       const resp = await fGetBalance.balanceOf(signerAddress);
@@ -119,19 +80,24 @@ function App() {
   }
   async function myApprove() {
     try {
-      const fApprove = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = tokenContract(provider);
+      const fApprove = newContract.connect(signer);
       console.log("Approve: " + to + " " + amount + " tokens");
       const resp = await fApprove.approve(to, amount);
       setTransactionData(resp);
       console.log("Response: " + resp);
+      console.log("Transaction data: " + transactionData);
     } catch (error) {
       console.log("Error: ", error);
     }
   }
   async function myCheckAllowance() {
     try {
-      const fCheckAllowance = currentContract.connect(signer);
-      console.log("Allowance from " + from + " to " + to + " :");
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = tokenContract(provider);
+      const fCheckAllowance = newContract.connect(signer);
+      console.log("Allowance from " + from + " to " + to);
       const resp = await fCheckAllowance.allowance(from, to);
       setTransactionData(resp);
       console.log("Response: " + resp);
@@ -141,7 +107,9 @@ function App() {
   }
   async function myTransfer() {
     try {
-      const fTransfer = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = tokenContract(provider);
+      const fTransfer = newContract.connect(signer);
       const signerAddress = await signer.getAddress();
       console.log("Transfer " + amount + " tokens to: " + to + " ................");
       const resp = await fTransfer.transferFrom(signerAddress, to, amount);
@@ -153,7 +121,9 @@ function App() {
   }
   async function myTransferFrom() {
     try {
-      const fTransferFrom = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = tokenContract(provider);
+      const fTransferFrom = newContract.connect(signer);
       console.log("Transfer " + amount + " tokens from " + from + " to " + to + " ................");
       const resp = await fTransferFrom.transferFrom(from, to, amount);
       setTransactionData(resp);
@@ -164,7 +134,9 @@ function App() {
   }
   async function myHasRoleAdmin() {
     try {
-      const fHasRoleAdmin = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = nftContract(provider);
+      const fHasRoleAdmin = newContract.connect(signer);
       console.log("Check admin role of " + from + " ...............");
       const resp = await fHasRoleAdmin.hasRole(DEFAULT_ADMIN_ROLE, from);
       setTransactionData(resp);
@@ -175,7 +147,9 @@ function App() {
   }
   async function myHasRoleMinter() {
     try {
-      const fHasRoleMinter = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = nftContract(provider);
+      const fHasRoleMinter = newContract.connect(signer);
       console.log("Check admin role of " + from + " ...............");
       const resp = await fHasRoleMinter.hasRole(MY_MINTER_ROLE, from);
       setTransactionData(resp);
@@ -186,7 +160,9 @@ function App() {
   }
   async function myGrantMinterRole() {
     try {
-      const fGrantMinterRole = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = nftContract(provider);
+      const fGrantMinterRole = newContract.connect(signer);
       console.log("Grant minter role for " + to + " ...............");
       const resp = await fGrantMinterRole.grantMinterRole(to);
       setTransactionData(resp);
@@ -197,7 +173,9 @@ function App() {
   }
   async function myMintNFT() {
     try {
-      const fMintNFT = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = nftContract(provider);
+      const fMintNFT = newContract.connect(signer);
       console.log("Mint NFT for " + to + " ...............");
       const resp = await fMintNFT.mintNFT(to, URI);
       setTransactionData(resp);
@@ -208,7 +186,9 @@ function App() {
   }
   async function myCheckOwner() {
     try {
-      const fOwnerOf = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = nftContract(provider);
+      const fOwnerOf = newContract.connect(signer);
       console.log("Check owner of NFT with id " + NFTId + " ...............");
       const resp = await fOwnerOf.ownerOf(NFTId);
       setTransactionData(resp);
@@ -219,7 +199,9 @@ function App() {
   }
   async function myCheckPaymentToken() {
     try {
-      const fCheckPaymentToken = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = mintNFTByTokenContract(provider);
+      const fCheckPaymentToken = newContract.connect(signer);
       console.log("Check payment token ...............");
       const resp = await fCheckPaymentToken.paymentToken();
       setTransactionData(resp);
@@ -230,7 +212,9 @@ function App() {
   }
   async function myCheckNFTAddress() {
     try {
-      const fCheckNFTAddress = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = mintNFTByTokenContract(provider);
+      const fCheckNFTAddress = newContract.connect(signer);
       console.log("Check NFT address ...............");
       const resp = await fCheckNFTAddress.nftAddress();
       setTransactionData(resp);
@@ -241,7 +225,9 @@ function App() {
   }
   async function mySetPaymentToken() {
     try {
-      const fSetPaymentToken = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = mintNFTByTokenContract(provider);
+      const fSetPaymentToken = newContract.connect(signer);
       console.log("Set payment token to " + targetAddress);
       const resp = await fSetPaymentToken.setPaymentToken(targetAddress);
       setTransactionData(resp);
@@ -252,7 +238,9 @@ function App() {
   }
   async function mySetNFTAddress() {
     try {
-      const fSetNFTAddress = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = mintNFTByTokenContract(provider);
+      const fSetNFTAddress = newContract.connect(signer);
       console.log("Set NFT address to " + targetAddress);
       const resp = await fSetNFTAddress.setNftToken(targetAddress);
       setTransactionData(resp);
@@ -263,7 +251,9 @@ function App() {
   }
   async function myBuyNFT() {
     try {
-      const fBuyNFT = currentContract.connect(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      let newContract = mintNFTByTokenContract(provider);
+      const fBuyNFT = newContract.connect(signer);
       console.log("Buy NFT..................");
       const resp = await fBuyNFT.buyNFT();
       setTransactionData(resp);
@@ -271,6 +261,29 @@ function App() {
     } catch (error) {
       console.log("Error: ", error);
     }
+  }
+  async function myListener() {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    let myContract = tokenContract(provider);
+    myContract.on("Transfer", (from, to, value, event) => {
+      let transferEvent ={
+        from: from,
+        to: to,
+        value: value,
+        eventData: event,
+      }
+      console.log("Event listened!!!");
+      console.log("from: " + from + " to: " + to + " value: " + value + " eventData: " + transferEvent);
+      if (to.toLowerCase() === "0x21889aab22b7004913C71eDDdaf25814dd4f7E01".toLowerCase() && value.toNumber() === 20) {
+        console.log("trigger react");
+        
+      const signer = new ethers.Wallet("9d63f22e98f98d390a38df36cdcbeeea37ba68e06577bc5dbfbcbbd63b147a73", provider);
+      const fReactTransfer = myContract.connect(signer);
+      console.log("to: " + from);
+      const resp = fReactTransfer.transfer(from, 1);
+      console.log("Response: " + resp);
+      }
+    })
   }
   // Return
   return (
@@ -286,13 +299,6 @@ function App() {
           <h4>Token address: 0xF42eBef0C9e2d235E9270288F20400fCD43008A1</h4>
           <h4>NFT address: 0xA2Fbb10d178DD121D770330F5d0Ca64c8f9A2122</h4>
           <h4>MintNFTByToken address: 0x2B1DA360ecc2088D99f258fD0563b11103C7f5a2</h4>
-        </div>
-
-        {/* BUTTONS - Change contract */}
-        <div className="custom-buttons">
-          <button onClick={changeContract} style={{ backgroundColor: "white" }}>
-            Change Contract
-          </button>
         </div>
 
         {/* BUTTONS - Get balance */}
